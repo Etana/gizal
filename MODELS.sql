@@ -37,7 +37,7 @@ CREATE TABLE link (
         id SERIAL, -- TODO: replace by hash of link (=> remove duplicate)
         link TEXT,
         priority integer DEFAULT 0,
-        format_id intger, -- gotten from python link importer (an hash of a static hash defining the domain) or null if unmanaged link
+        -- format_id intger, -- gotten from python link importer (an hash of a static hash defining the domain) or null if unmanaged link
         item_id integer REFERENCES item(id), -- main item id related to link (there could be unrelated link)
         PRIMARY KEY(id)
 );

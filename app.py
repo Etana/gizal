@@ -3,6 +3,18 @@ import requests
 from werkzeug.wrappers import Request, Response
 from urllib.parse import unquote
 from cgi import escape
+import psycopg2
+import urllib2
+
+# http://stackoverflow.com/a/3764660/2001574
+def internet_on():
+    try:
+        response=urllib2.urlopen('http://www.google.com/',timeout=1)
+        return True
+    except urllib2.URLError as err: pass
+    return False
+
+NO_NETWORK = not internet_on()
 
 # main application
 
@@ -17,6 +29,13 @@ def application(request):
     else:
         content = '<form><input name=q></form>'
     return Response(content, mimetype='text/html')
+
+# db 
+
+db = psycopg2.connect(database="g", user="ea")
+cur = db.cursor()
+#c.execute('select * from item')
+#c.fetchall()
 
 # tools
 
@@ -50,7 +69,13 @@ def domain(domain):
 def wiki_daddicts(query, domain, path_qs):
     print(path_qs)
     content = ''
-    page = requests.get(query).text
+    cur.execute('select id from link where link = %s', (query,))
+    print(cur.fetchall())
+    if NO_NETWORK:
+        with open('src/'+query.partition('//')[2].replace('/', '_')) as f:
+            page = f.read()
+    else:
+        page = requests.get(query).text
     if '?' in path_qs or path_qs.startswith('Talk:'):
         return 'not an article =('
     title = between('"wgTitle":"', '",', page)
@@ -64,10 +89,11 @@ def wiki_daddicts(query, domain, path_qs):
             tags.append(before('<', role_part) or role_part)
         actor_name = between('">', '</a>', actor_line)
         actor_link = between(' href="', '"', actor_line)
-        if actor_link:
+        if actor_link and False:
             content += wiki_daddicts('http://{}{}'.format(domain, actor_link), domain, actor_link[1:])
         tags.append(actor_name)
     content = '<h1>{}</h1><ul><li>{}</li></ul><textarea>{}</textarea>'.format(title, '</li><li>'.join(tags), escape(page))
+    cur.execute('insert into link(link) values(%s)', (query,))
     return content
 
 if __name__ == '__main__':
