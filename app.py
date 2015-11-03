@@ -4,14 +4,13 @@ from werkzeug.wrappers import Request, Response
 from urllib.parse import unquote
 from cgi import escape
 import psycopg2
-import urllib2
 
-# http://stackoverflow.com/a/3764660/2001574
 def internet_on():
     try:
-        response=urllib2.urlopen('http://www.google.com/',timeout=1)
+        requests.head('http://www.google.com/', timeout=0.5)
         return True
-    except urllib2.URLError as err: pass
+    except requests.exceptions.ConnectionError:
+        pass
     return False
 
 NO_NETWORK = not internet_on()
